@@ -101,7 +101,7 @@ class MazeBankApp:
         red_line.pack(fill="x", pady=20)
         
         # Combined username and service prompt in one red square (full width)
-        user_service_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_service_frame = tk.Frame(main_frame, bg="#00ff00", padx=10, pady=15)
         user_service_frame.pack(fill="x", pady=(0, 20))
         
         tk.Label(user_service_frame, 
