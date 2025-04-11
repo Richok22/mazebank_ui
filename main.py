@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import requests
 from io import BytesIO
@@ -7,28 +7,41 @@ import json
 from datetime import datetime
 
 class MazeBankApp:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
+        self.root = tk.Tk()
         self.root.title("MAZE BANK")
         self.root.geometry("700x600")
         self.root.configure(bg="white")
         self.root.resizable(False, False)
         
+        # Store references to windows
+        self.main_window = None
+        self.current_window = None
+        
         # Sample transaction data with reason added
         self.transactions = [
-            {"date": "2023-05-15", "time": "14:30:22", "type": "Deposit", "amount": 500.00, "balance": 503.72, "reason": "Vanila Unicorn"},
-            {"date": "2023-05-10", "time": "09:15:47", "type": "Withdrawal", "amount": 50.00, "balance": 3.72, "reason": "Vanila Unicorn"},
-            {"date": "2023-05-01", "time": "16:45:12", "type": "Deposit", "amount": 100.00, "balance": 53.72, "reason": "Vanila Unicorn"}
+            {"date": "2023-05-15", "time": "14:30:22", "type": "Deposit", "amount": 500.00, "balance": 503.72, "reason": "Vanilla Unicorn"},
+            {"date": "2023-05-10", "time": "09:15:47", "type": "Withdrawal", "amount": 50.00, "balance": 3.72, "reason": "Vanilla Unicorn"},
+            {"date": "2023-05-01", "time": "16:45:12", "type": "Deposit", "amount": 100.00, "balance": 53.72, "reason": "Vanilla Unicorn"}
         ]
         
         self.current_balance = 3.72
         self.username = "Ruslans Depo"
-        self.create_main_ui()
-    
-    def create_main_ui(self):
+        
+        self.create_main_menu()
+        
+    def create_main_menu(self):
+        # Clear any existing window
+        if self.current_window and self.current_window != self.root:
+            self.current_window.destroy()
+            self.root.deiconify()
+        
         # Clear the window if coming back from transaction log
         for widget in self.root.winfo_children():
             widget.destroy()
+            
+        self.current_window = self.root
+        self.main_window = self.current_window
         
         # Load Maze Bank logo
         try:
@@ -41,11 +54,11 @@ class MazeBankApp:
             self.logo = None
         
         # Main frame
-        self.main_frame = tk.Frame(self.root, bg="white", padx=20, pady=20)
-        self.main_frame.pack(expand=True, fill="both")
+        main_frame = tk.Frame(self.current_window, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
         
         # Header line with logo, bank name and balance
-        header_line = tk.Frame(self.main_frame, bg="white")
+        header_line = tk.Frame(main_frame, bg="white")
         header_line.pack(fill="x")
         
         # Logo and bank name on left
@@ -84,11 +97,11 @@ class MazeBankApp:
         self.balance_label.pack(anchor="e")
         
         # Thick red line separator
-        red_line = tk.Frame(self.main_frame, height=4, bg="#ff0000")
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
         red_line.pack(fill="x", pady=20)
         
         # Combined username and service prompt in one red square (full width)
-        user_service_frame = tk.Frame(self.main_frame, bg="#ff0000", padx=10, pady=15)
+        user_service_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
         user_service_frame.pack(fill="x", pady=(0, 20))
         
         tk.Label(user_service_frame, 
@@ -127,22 +140,24 @@ class MazeBankApp:
             e.widget.config(highlightbackground="#ff0000", highlightcolor="#ff0000", highlightthickness=1)
         
         # Button container
-        button_container = tk.Frame(self.main_frame, bg="white")
+        button_container = tk.Frame(main_frame, bg="white")
         button_container.pack(pady=20)
         
         # Create buttons
-        deposit_btn = tk.Button(button_container, text="DEPOSIT", **button_style)
+        deposit_btn = tk.Button(button_container, text="DEPOSIT", **button_style, 
+                               command=self.create_deposit_window)
         deposit_btn.pack(pady=10)
         deposit_btn.bind("<Enter>", on_enter)
         deposit_btn.bind("<Leave>", on_leave)
         
-        withdraw_btn = tk.Button(button_container, text="WITHDRAW", **button_style)
+        withdraw_btn = tk.Button(button_container, text="WITHDRAW", **button_style, 
+                                command=self.create_withdrawal_window)
         withdraw_btn.pack(pady=10)
         withdraw_btn.bind("<Enter>", on_enter)
         withdraw_btn.bind("<Leave>", on_leave)
         
         trans_log_btn = tk.Button(button_container, text="TRANSACTION LOG", **button_style,
-                                command=self.show_transaction_log)
+                                 command=self.show_transaction_log)
         trans_log_btn.pack(pady=10)
         trans_log_btn.bind("<Enter>", on_enter)
         trans_log_btn.bind("<Leave>", on_leave)
@@ -151,13 +166,284 @@ class MazeBankApp:
         for btn in [deposit_btn, withdraw_btn, trans_log_btn]:
             btn.config(highlightthickness=1)
     
-    def show_transaction_log(self):
-        # Clear the main UI
-        for widget in self.root.winfo_children():
-            widget.destroy()
+    def create_withdrawal_window(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        withdraw_win = tk.Toplevel()
+        withdraw_win.title("MAZE BANK - Withdraw")
+        withdraw_win.geometry("700x600")
+        withdraw_win.configure(bg="white")
+        withdraw_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        withdraw_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(withdraw_win))
+        
+        self.current_window = withdraw_win
         
         # Main frame
-        main_frame = tk.Frame(self.root, bg="white", padx=20, pady=20)
+        main_frame = tk.Frame(withdraw_win, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Header line with bank name
+        header_line = tk.Frame(main_frame, bg="white")
+        header_line.pack(fill="x")
+        
+        # Bank name on left
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text_frame, 
+                 text="MAZE BANK", 
+                 font=("Arial", 24, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        tk.Label(bank_text_frame, 
+                 text="OF LOS SANTOS", 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        # Account balance on right
+        balance_frame = tk.Frame(header_line, bg="white")
+        balance_frame.pack(side="right")
+        
+        tk.Label(balance_frame, 
+                 text=f"Account balance: ${self.current_balance:.2f}", 
+                 font=("Arial", 12, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="e")
+        
+        # Thick red line separator
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
+        red_line.pack(fill="x", pady=20)
+        
+        # Username and prompt in red box
+        user_prompt_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_prompt_frame.pack(fill="x", pady=(0, 20))
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.username, 
+                 font=("Arial", 12, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="w")
+        
+        tk.Label(user_prompt_frame, 
+                 text="Select the amount you wish to withdraw from this account.", 
+                 font=("Arial", 14, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="center", pady=(10, 0))
+        
+        # Button styling for amount buttons
+        amount_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "white",
+            "fg": "black",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#eeeeee",
+            "activeforeground": "black",
+            "borderwidth": 1,
+            "highlightbackground": "#cccccc"
+        }
+        
+        # Amount buttons container
+        amount_frame = tk.Frame(main_frame, bg="white")
+        amount_frame.pack(pady=20)
+        
+        # First row of buttons
+        row1_frame = tk.Frame(amount_frame, bg="white")
+        row1_frame.pack(pady=10)
+        
+        # Create amount buttons with commands
+        amounts_row1 = ["$50", "$100", "$500"]
+        for amount in amounts_row1:
+            tk.Button(row1_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Second row of buttons
+        row2_frame = tk.Frame(amount_frame, bg="white")
+        row2_frame.pack(pady=10)
+        
+        amounts_row2 = ["$1,000", "$2,500", "$5,000"]
+        for amount in amounts_row2:
+            tk.Button(row2_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Main Menu button at bottom
+        menu_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "#ff0000",
+            "fg": "white",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#cc0000",
+            "activeforeground": "white",
+            "borderwidth": 1,
+            "highlightbackground": "#ff0000",
+            "command": lambda: self.on_window_close(withdraw_win)
+        }
+        
+        menu_frame = tk.Frame(main_frame, bg="white")
+        menu_frame.pack(pady=20)
+        
+        tk.Button(menu_frame, text="Main Menu", **menu_button_style).pack()
+    
+    def create_deposit_window(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        deposit_win = tk.Toplevel()
+        deposit_win.title("MAZE BANK - Deposit")
+        deposit_win.geometry("700x600")
+        deposit_win.configure(bg="white")
+        deposit_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        deposit_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(deposit_win))
+        
+        self.current_window = deposit_win
+        
+        # Main frame
+        main_frame = tk.Frame(deposit_win, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Header line with bank name
+        header_line = tk.Frame(main_frame, bg="white")
+        header_line.pack(fill="x")
+        
+        # Bank name on left
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text_frame, 
+                 text="MAZE BANK", 
+                 font=("Arial", 24, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        tk.Label(bank_text_frame, 
+                 text="OF LOS SANTOS", 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        # Account balance on right
+        balance_frame = tk.Frame(header_line, bg="white")
+        balance_frame.pack(side="right")
+        
+        tk.Label(balance_frame, 
+                 text=f"Account balance: ${self.current_balance:.2f}", 
+                 font=("Arial", 12, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="e")
+        
+        # Thick red line separator
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
+        red_line.pack(fill="x", pady=20)
+        
+        # Username and prompt in red box
+        user_prompt_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_prompt_frame.pack(fill="x", pady=(0, 20))
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.username, 
+                 font=("Arial", 12, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="w")
+        
+        tk.Label(user_prompt_frame, 
+                 text="Select the amount you wish to deposit into this account.", 
+                 font=("Arial", 14, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="center", pady=(10, 0))
+        
+        # Button styling for amount buttons
+        amount_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "white",
+            "fg": "black",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#eeeeee",
+            "activeforeground": "black",
+            "borderwidth": 1,
+            "highlightbackground": "#cccccc"
+        }
+        
+        # Amount buttons container
+        amount_frame = tk.Frame(main_frame, bg="white")
+        amount_frame.pack(pady=20)
+        
+        # First row of buttons
+        row1_frame = tk.Frame(amount_frame, bg="white")
+        row1_frame.pack(pady=10)
+        
+        # Create amount buttons with commands
+        amounts_row1 = ["$50", "$100", "$500"]
+        for amount in amounts_row1:
+            tk.Button(row1_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("deposit", amt)).pack(side="left", padx=10)
+        
+        # Second row of buttons
+        row2_frame = tk.Frame(amount_frame, bg="white")
+        row2_frame.pack(pady=10)
+        
+        amounts_row2 = ["$1,000", "$2,500", "$5,000"]
+        for amount in amounts_row2:
+            tk.Button(row2_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("deposit", amt)).pack(side="left", padx=10)
+        
+        # Main Menu button at bottom
+        menu_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "#ff0000",
+            "fg": "white",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#cc0000",
+            "activeforeground": "white",
+            "borderwidth": 1,
+            "highlightbackground": "#ff0000",
+            "command": lambda: self.on_window_close(deposit_win)
+        }
+        
+        menu_frame = tk.Frame(main_frame, bg="white")
+        menu_frame.pack(pady=20)
+        
+        tk.Button(menu_frame, text="Main Menu", **menu_button_style).pack()
+    
+    def show_transaction_log(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        # Create new window for transaction log
+        trans_log_win = tk.Toplevel()
+        trans_log_win.title("MAZE BANK - Transaction Log")
+        trans_log_win.geometry("700x600")
+        trans_log_win.configure(bg="white")
+        trans_log_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        trans_log_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(trans_log_win))
+        
+        self.current_window = trans_log_win
+        
+        # Main frame
+        main_frame = tk.Frame(trans_log_win, bg="white", padx=20, pady=20)
         main_frame.pack(expand=True, fill="both")
         
         # Red square with username and return button
@@ -179,7 +465,7 @@ class MazeBankApp:
                              font=("Arial", 10, "bold"), 
                              bg="white", fg="#ff0000",
                              bd=0, padx=10, pady=2,
-                             command=self.create_main_ui)
+                             command=lambda: self.on_window_close(trans_log_win))
         return_btn.pack(side="right", anchor="e")
         
         # Transaction History label centered
@@ -270,7 +556,7 @@ class MazeBankApp:
     
     def show_raw_json(self):
         # Create a new toplevel window for JSON view
-        json_window = tk.Toplevel(self.root)
+        json_window = tk.Toplevel(self.current_window)
         json_window.title("Transaction Data - Raw JSON")
         json_window.geometry("500x400")
         
@@ -288,9 +574,117 @@ class MazeBankApp:
         formatted_json = json.dumps(self.transactions, indent=4)
         text_widget.insert("1.0", formatted_json)
         text_widget.configure(state="disabled")  # Make it read-only
+        
+        # Make the window modal
+        json_window.grab_set()
+        json_window.transient(self.current_window)
+    
+    def handle_transaction(self, action_type, amount):
+        # Extract amount value from button text (remove $ and commas)
+        amount_clean = float(amount.replace('$', '').replace(',', ''))
+        
+        # Get current date and time
+        now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        
+        # Update balance
+        old_balance = self.current_balance
+        if action_type == "deposit":
+            self.current_balance += amount_clean
+            trans_type = "Deposit"
+        else:  # withdraw
+            # Check if there's enough balance
+            if self.current_balance < amount_clean:
+                messagebox.showerror("Insufficient Funds", "You don't have enough balance for this withdrawal.")
+                return
+            
+            self.current_balance -= amount_clean
+            trans_type = "Withdrawal"
+        
+        # Add transaction to log
+        self.transactions.insert(0, {
+            "date": date_str,
+            "time": time_str,
+            "type": trans_type,
+            "amount": amount_clean,
+            "balance": self.current_balance,
+            "reason": "ATM Transaction"
+        })
+        
+        # Show confirmation message
+        self.show_confirmation(action_type, amount, old_balance)
+    
+    def on_window_close(self, window):
+        window.destroy()
+        self.root.deiconify()  # Show main window again
+        self.create_main_menu()
+    
+    def show_confirmation(self, action_type, amount, old_balance=None):
+        # Format message based on action
+        if action_type == "deposit":
+            verb = "deposited"
+        else:
+            verb = "withdrew"
+        
+        # Create a top-level window for the confirmation
+        confirmation = tk.Toplevel(self.current_window)
+        confirmation.title("Transaction Complete")
+        confirmation.geometry("400x250")
+        confirmation.configure(bg="white")
+        confirmation.resizable(False, False)
+        
+        # Center the window
+        window_width = confirmation.winfo_reqwidth()
+        window_height = confirmation.winfo_reqheight()
+        position_right = int(confirmation.winfo_screenwidth()/2 - window_width/2)
+        position_down = int(confirmation.winfo_screenheight()/2 - window_height/2)
+        confirmation.geometry(f"+{position_right}+{position_down}")
+        
+        # Container frame
+        main_frame = tk.Frame(confirmation, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Add messages
+        msg = tk.Label(main_frame, 
+                     text=f"You successfully {verb} {amount}.",
+                     font=("Arial", 14, "bold"), 
+                     bg="white")
+        msg.pack(expand=True, pady=(20, 10))
+        
+        # Add balance update if provided
+        if old_balance is not None:
+            balance_frame = tk.Frame(main_frame, bg="white")
+            balance_frame.pack(pady=10)
+            
+            tk.Label(balance_frame,
+                   text=f"Previous balance: ${old_balance:.2f}",
+                   font=("Arial", 12),
+                   bg="white").pack(anchor="w")
+            
+            tk.Label(balance_frame,
+                   text=f"New balance: ${self.current_balance:.2f}",
+                   font=("Arial", 12, "bold"),
+                   bg="white").pack(anchor="w")
+        
+        # Add OK button
+        ok_btn = tk.Button(main_frame, 
+                         text="OK", 
+                         font=("Arial", 12, "bold"),
+                         width=10,
+                         bg="#ff0000",
+                         fg="white",
+                         command=confirmation.destroy)
+        ok_btn.pack(pady=20)
+        
+        # Make the window modal
+        confirmation.grab_set()
+        confirmation.transient(self.current_window)
+    
+    def run(self):
+        self.root.mainloop()
 
 # Create and run the application
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = MazeBankApp(root)
-    root.mainloop()
+    app = MazeBankApp()
+    app.run()
