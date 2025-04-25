@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
+# from PIL import Image, ImageTk
 import requests
 from io import BytesIO
 import json
@@ -583,6 +583,96 @@ class MazeBankApp:
         # Extract amount value from button text (remove $ and commas)
         amount_clean = float(amount.replace('$', '').replace(',', ''))
         
+        # Create confirmation dialog
+        confirmation = tk.Toplevel(self.current_window)
+        confirmation.title("Confirm Transaction")
+        confirmation.geometry("400x250")
+        confirmation.configure(bg="white")
+        confirmation.resizable(False, False)
+        
+        # Center the window
+        window_width = confirmation.winfo_reqwidth()
+        window_height = confirmation.winfo_reqheight()
+        position_right = int(confirmation.winfo_screenwidth()/2 - window_width/2)
+        position_down = int(confirmation.winfo_screenheight()/2 - window_height/2)
+        confirmation.geometry(f"+{position_right}+{position_down}")
+        
+        # Container frame
+        main_frame = tk.Frame(confirmation, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Determine transaction type text
+        if action_type == "deposit":
+            action_text = "DEPOSIT"
+            confirm_text = f"Are you sure you want to deposit {amount}?"
+        else:
+            action_text = "WITHDRAWAL"
+            confirm_text = f"Are you sure you want to withdraw {amount}?"
+            
+            # Check for insufficient funds
+            if self.current_balance < amount_clean:
+                messagebox.showerror("Insufficient Funds", 
+                                   "You don't have enough balance for this withdrawal.")
+                confirmation.destroy()
+                return
+        
+        # Add confirmation message
+        tk.Label(main_frame, 
+                 text=confirm_text,
+                 font=("Arial", 12), 
+                 bg="white",
+                 wraplength=350).pack(expand=True, pady=(20, 10))
+        
+        # Add current balance
+        tk.Label(main_frame,
+                 text=f"Current balance: ${self.current_balance:.2f}",
+                 font=("Arial", 12),
+                 bg="white").pack(pady=5)
+        
+        # Button frame
+        button_frame = tk.Frame(main_frame, bg="white")
+        button_frame.pack(pady=20)
+        
+        # Button styling
+        button_style = {
+            "font": ("Arial", 10, "bold"),
+            "width": 8,
+            "height": 1,
+            "bd": 0,
+            "highlightthickness": 0
+        }
+        
+        # Yes button (confirm transaction)
+        yes_btn = tk.Button(button_frame, 
+                       text="YES",
+                       bg="#ff0000",
+                       fg="white",
+                       activebackground="#cc0000",
+                       activeforeground="white",
+                       command=lambda: self.process_confirmed_transaction(
+                           action_type, amount_clean, confirmation),
+                       **button_style)
+        yes_btn.pack(side="left", padx=10)
+        
+        # No button (cancel transaction)
+        no_btn = tk.Button(button_frame, 
+                      text="NO",
+                      bg="#333333",
+                      fg="white",
+                      activebackground="#555555",
+                      activeforeground="white",
+                      command=confirmation.destroy,
+                      **button_style)
+        no_btn.pack(side="right", padx=10)
+        
+        # Make the window modal
+        confirmation.grab_set()
+        confirmation.transient(self.current_window)
+
+    def process_confirmed_transaction(self, action_type, amount_clean, confirmation_window):
+        # Close the confirmation window
+        confirmation_window.destroy()
+        
         # Get current date and time
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d")
@@ -594,11 +684,6 @@ class MazeBankApp:
             self.current_balance += amount_clean
             trans_type = "Deposit"
         else:  # withdraw
-            # Check if there's enough balance
-            if self.current_balance < amount_clean:
-                messagebox.showerror("Insufficient Funds", "You don't have enough balance for this withdrawal.")
-                return
-            
             self.current_balance -= amount_clean
             trans_type = "Withdrawal"
         
@@ -612,8 +697,8 @@ class MazeBankApp:
             "reason": "ATM Transaction"
         })
         
-        # Show confirmation message
-        self.show_confirmation(action_type, amount, old_balance)
+        # Show success message
+        self.show_confirmation(action_type, f"${amount_clean:,.2f}", old_balance)
     
     def on_window_close(self, window):
         window.destroy()
