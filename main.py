@@ -5,6 +5,7 @@ import requests
 from io import BytesIO
 import json
 from datetime import datetime
+import random
 
 class MazeBankApp:
     def __init__(self):
@@ -18,7 +19,6 @@ class MazeBankApp:
         self.main_window = None
         self.current_window = None
         
-        
         # Sample transaction data with reason added
         self.transactions = [
             {"date": "2023-05-15", "time": "14:30:22", "type": "Deposit", "amount": 500.00, "balance": 503.72, "reason": "Vanilla Unicorn"},
@@ -30,7 +30,21 @@ class MazeBankApp:
         self.username = "Ruslans Depo"
         self.current_language = "english"  # Default language
         
-        # Language dictionaries
+        # Daily quotes data
+        self.quotes = [
+            {"quote": "Money often costs too much.", "author": "Ralph Waldo Emerson"},
+            {"quote": "The safest way to double your money is to fold it over and put it in your pocket.", "author": "Kin Hubbard"},
+            {"quote": "A bank is a place where they lend you an umbrella in fair weather and ask for it back when it begins to rain.", "author": "Robert Frost"},
+            {"quote": "It's not how much money you make, but how much money you keep.", "author": "Robert Kiyosaki"},
+            {"quote": "The art is not in making money, but in keeping it.", "author": "Proverb"},
+            {"quote": "Banks are happy to lend you money if you can prove you don't need it.", "author": "Unknown"},
+            {"quote": "Financial peace isn't the acquisition of stuff. It's learning to live on less than you make.", "author": "Dave Ramsey"},
+            {"quote": "Never spend your money before you have it.", "author": "Thomas Jefferson"},
+            {"quote": "The goal isn't more money. The goal is living life on your terms.", "author": "Chris Brogan"},
+            {"quote": "Money is a terrible master but an excellent servant.", "author": "P.T. Barnum"}
+        ]
+        
+        # Language dictionaries (updated with quote texts)
         self.language_texts = {
             "english": {
                 "bank_name": "MAZE BANK",
@@ -40,6 +54,7 @@ class MazeBankApp:
                 "deposit": "DEPOSIT",
                 "withdraw": "WITHDRAW",
                 "trans_log": "TRANSACTION LOG",
+                "daily_quote": "DAILY QUOTE",
                 "withdraw_prompt": "Select the amount you wish to withdraw from this account.",
                 "deposit_prompt": "Select the amount you wish to deposit into this account.",
                 "trans_history": "Transaction History",
@@ -56,7 +71,9 @@ class MazeBankApp:
                 "prev_balance": "Previous balance: ${:.2f}",
                 "new_balance": "New balance: ${:.2f}",
                 "insufficient_funds": "Insufficient Funds",
-                "insufficient_msg": "You don't have enough balance for this withdrawal."
+                "insufficient_msg": "You don't have enough balance for this withdrawal.",
+                "quote_of_day": "Quote of the Day",
+                "close": "Close"
             },
             "latvian": {
                 "bank_name": "MAZE BANKA",
@@ -66,6 +83,7 @@ class MazeBankApp:
                 "deposit": "IESNIEGT",
                 "withdraw": "IZŅEMT",
                 "trans_log": "DARĪJUMU ŽURNĀLS",
+                "daily_quote": "DIENAS CITĀTS",
                 "withdraw_prompt": "Atlasiet summu, kuru vēlaties izņemt no šī konta.",
                 "deposit_prompt": "Atlasiet summu, kuru vēlaties ieskaitīt šajā kontā.",
                 "trans_history": "Darījumu vēsture",
@@ -82,7 +100,9 @@ class MazeBankApp:
                 "prev_balance": "Iepriekšējais atlikums: ${:.2f}",
                 "new_balance": "Jauns atlikums: ${:.2f}",
                 "insufficient_funds": "Nepietiek līdzekļu",
-                "insufficient_msg": "Jums nav pietiekami daudz naudas šim izņēmumam."
+                "insufficient_msg": "Jums nav pietiekami daudz naudas šim izņēmumam.",
+                "quote_of_day": "Dienas citāts",
+                "close": "Aizvērt"
             },
             "morse": {
                 "bank_name": "-- .- --.. . / -... .- -. -.-",
@@ -92,11 +112,12 @@ class MazeBankApp:
                 "deposit": "-.. . .--. --- ... .. -",
                 "withdraw": ".-- .. - .... -.. .-. .- .--",
                 "trans_log": "- .-. .- -. ... .- -.-. - .. --- -. / .-.. --- --.",
+                "daily_quote": "-.. .- .. .-.. -.-- / --.- ..- --- - .",
                 "withdraw_prompt": "... . .-.. . -.-. - / - .... . / .- -- --- ..- -. - / -.-- --- ..- / .-- .. ... .... / - --- / .-- .. - .... -.. .-. .- .-- / ..-. .-. --- -- / - .... .. ... / .- -.-. -.-. --- ..- -. - .-.-.-",
                 "deposit_prompt": "... . .-.. . -.-. - / - .... . / .- -- --- ..- -. - / -.-- --- ..- / .-- .. ... .... / - --- / -.. . .--. --- ... .. - / .. -. - --- / - .... .. ... / .- -.-. -.-. --- ..- -. - .-.-.-",
                 "trans_history": "- .-. .- -. ... .- -.-. - .. --- -. / .... .. ... - --- .-. -.--",
                 "return_main": ". . - ..- .-. -. / - --- / -- .- .. -. →",
-                "view_json": "...- .. . .-- / .-. .- .-- / .--- ... --- -.",
+                "view_json": "...- .. .-- / .-. .- .-- / .--- ... --- -.",
                 "date": "-.. .- - .",
                 "time": "- .. -- .",
                 "type": "- -.-- .--. .",
@@ -108,12 +129,69 @@ class MazeBankApp:
                 "prev_balance": ".--. .-. . ... .. --- ..- ... / -... .- .-.. .- -. -.-. .: ${:.2f}",
                 "new_balance": ".--- .- ..- -. ... / -... .- .-.. .- -. -.-. .: ${:.2f}",
                 "insufficient_funds": ".. -. ... ..- ..-. ..-. .. -.-. .. . -. - / ..-. ..- -. -.. ...",
-                "insufficient_msg": "-.-- --- ..- / -.. --- -. .----. - / .... .- ...- . / . -. --- ..- --. .... / -... .- .-.. .- -. -.-. . / ..-. --- .-. / - .... .. ... / .-- .. - .... -.. .-. .- .-- .- .-.. .-.-.-"
+                "insufficient_msg": "-.-- --- ..- / -.. --- -. .----. - / .... .- ...- . / . -. --- ..- --. .... / -... .- .-.. .- -. -.-. . / ..-. --- .-. / - .... .. ... / .-- .. - .... -.. .-. .- .-- .- .-.. .-.-.-",
+                "quote_of_day": "--.- ..- --- - . / --- ..-. / - .... . / -.. .- -.--",
+                "close": "-.-. .-.. --- ... ."
             }
         }
         
         self.create_main_menu()
+        self.show_daily_quote()  # Show quote when app starts
         
+    def show_daily_quote(self):
+        # Get a random quote
+        quote_data = random.choice(self.quotes)
+        quote = quote_data["quote"]
+        author = quote_data["author"]
+        
+        # Create a top-level window for the quote
+        quote_window = tk.Toplevel(self.root)
+        quote_window.title(self.language_texts[self.current_language]["quote_of_day"])
+        quote_window.geometry("500x300")
+        quote_window.configure(bg="white")
+        quote_window.resizable(False, False)
+        
+        # Center the window
+        window_width = quote_window.winfo_reqwidth()
+        window_height = quote_window.winfo_reqheight()
+        position_right = int(quote_window.winfo_screenwidth()/2 - window_width/2)
+        position_down = int(quote_window.winfo_screenheight()/2 - window_height/2)
+        quote_window.geometry(f"+{position_right}+{position_down}")
+        
+        # Main frame
+        main_frame = tk.Frame(quote_window, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Quote label
+        quote_label = tk.Label(main_frame, 
+                             text=f'"{quote}"',
+                             font=("Arial", 12, "italic"),
+                             wraplength=400,
+                             justify="center",
+                             bg="white")
+        quote_label.pack(expand=True, pady=(20, 10))
+        
+        # Author label
+        author_label = tk.Label(main_frame, 
+                              text=f"— {author}",
+                              font=("Arial", 10),
+                              bg="white")
+        author_label.pack(pady=(0, 20))
+        
+        # Close button
+        close_btn = tk.Button(main_frame, 
+                            text=self.language_texts[self.current_language]["close"], 
+                            font=("Arial", 12, "bold"),
+                            width=10,
+                            bg="#ff0000",
+                            fg="white",
+                            command=quote_window.destroy)
+        close_btn.pack(pady=10)
+        
+        # Make the window modal
+        quote_window.grab_set()
+        quote_window.transient(self.root)
+    
     def create_main_menu(self):
         # Clear any existing window
         if self.current_window and self.current_window != self.root:
@@ -264,8 +342,17 @@ class MazeBankApp:
         trans_log_btn.bind("<Enter>", on_enter)
         trans_log_btn.bind("<Leave>", on_leave)
         
+        # Add Daily Quote button
+        quote_btn = tk.Button(button_container, 
+                             text=self.language_texts[self.current_language]["daily_quote"], 
+                             **button_style,
+                             command=self.show_daily_quote)
+        quote_btn.pack(pady=10)
+        quote_btn.bind("<Enter>", on_enter)
+        quote_btn.bind("<Leave>", on_leave)
+        
         # Apply rounded corners
-        for btn in [deposit_btn, withdraw_btn, trans_log_btn]:
+        for btn in [deposit_btn, withdraw_btn, trans_log_btn, quote_btn]:
             btn.config(highlightthickness=1)
     
     def set_language(self, language):
