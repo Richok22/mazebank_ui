@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-# from PIL import Image, ImageTk
-
+from PIL import Image, ImageTk
 import requests
 from io import BytesIO
 import json
 from datetime import datetime
+import random
 
 class MazeBankApp:
     def __init__(self):
@@ -28,6 +28,124 @@ class MazeBankApp:
         
         self.current_balance = 3.72
         self.username = "Ruslans Depo"
+        self.current_language = "english"  # Default language
+        
+        # Daily quotes data
+        self.quotes = [
+            {"quote": "Money often costs too much.", "author": "Ralph Waldo Emerson"},
+            {"quote": "The safest way to double your money is to fold it over and put it in your pocket.", "author": "Kin Hubbard"},
+            {"quote": "A bank is a place where they lend you an umbrella in fair weather and ask for it back when it begins to rain.", "author": "Robert Frost"},
+            {"quote": "It's not how much money you make, but how much money you keep.", "author": "Robert Kiyosaki"},
+            {"quote": "The art is not in making money, but in keeping it.", "author": "Proverb"},
+            {"quote": "Banks are happy to lend you money if you can prove you don't need it.", "author": "Unknown"},
+            {"quote": "Financial peace isn't the acquisition of stuff. It's learning to live on less than you make.", "author": "Dave Ramsey"},
+            {"quote": "Never spend your money before you have it.", "author": "Thomas Jefferson"},
+            {"quote": "The goal isn't more money. The goal is living life on your terms.", "author": "Chris Brogan"},
+            {"quote": "Money is a terrible master but an excellent servant.", "author": "P.T. Barnum"}
+        ]
+        
+        # Language dictionaries (updated with quote texts)
+        self.language_texts = {
+            "english": {
+                "bank_name": "MAZE BANK",
+                "bank_subtitle": "OF LOS SANTOS",
+                "balance": "Account balance: ${:.2f}",
+                "choose_service": "Choose a service.",
+                "deposit": "DEPOSIT",
+                "withdraw": "WITHDRAW",
+                "trans_log": "TRANSACTION LOG",
+                "daily_quote": "DAILY QUOTE",
+                "withdraw_prompt": "Select the amount you wish to withdraw from this account.",
+                "deposit_prompt": "Select the amount you wish to deposit into this account.",
+                "trans_history": "Transaction History",
+                "return_main": "Return to Main →",
+                "view_json": "VIEW RAW JSON",
+                "date": "DATE",
+                "time": "TIME",
+                "type": "TYPE",
+                "amount": "AMOUNT",
+                "balance_col": "BALANCE",
+                "reason": "REASON",
+                "success_deposit": "You successfully deposited {}.",
+                "success_withdraw": "You successfully withdrew {}.",
+                "prev_balance": "Previous balance: ${:.2f}",
+                "new_balance": "New balance: ${:.2f}",
+                "insufficient_funds": "Insufficient Funds",
+                "insufficient_msg": "You don't have enough balance for this withdrawal.",
+                "quote_of_day": "Quote of the Day",
+                "close": "Close",
+                "enter_pin": "Enter your PIN code",
+                "incorrect_pin": "Incorrect PIN. {} attempts remaining.",
+                "account_locked": "Account Locked",
+                "max_attempts": "Maximum PIN attempts exceeded. Your account has been locked."
+            },
+            "latvian": {
+                "bank_name": "MAZE BANKA",
+                "bank_subtitle": "NO LOS SANTOS",
+                "balance": "Konta atlikums: ${:.2f}",
+                "choose_service": "Izvēlieties pakalpojumu.",
+                "deposit": "IESNIEGT",
+                "withdraw": "IZŅEMT",
+                "trans_log": "DARĪJUMU ŽURNĀLS",
+                "daily_quote": "DIENAS CITĀTS",
+                "withdraw_prompt": "Atlasiet summu, kuru vēlaties izņemt no šī konta.",
+                "deposit_prompt": "Atlasiet summu, kuru vēlaties ieskaitīt šajā kontā.",
+                "trans_history": "Darījumu vēsture",
+                "return_main": "Atgriezties →",
+                "view_json": "SKAITĀMĀ JSON",
+                "date": "DATUMS",
+                "time": "LAIKS",
+                "type": "VEIDS",
+                "amount": "SUMMA",
+                "balance_col": "ATLIKUMS",
+                "reason": "IEMESLS",
+                "success_deposit": "Jūs veiksmīgi iemaksājāt {}.",
+                "success_withdraw": "Jūs veiksmīgi izņēmāt {}.",
+                "prev_balance": "Iepriekšējais atlikums: ${:.2f}",
+                "new_balance": "Jauns atlikums: ${:.2f}",
+                "insufficient_funds": "Nepietiek līdzekļu",
+                "insufficient_msg": "Jums nav pietiekami daudz naudas šim izņēmumam.",
+                "quote_of_day": "Dienas citāts",
+                "close": "Aizvērt",
+                "enter_pin": "Ievadiet savu PIN kodu",
+                "incorrect_pin": "Nepareizs PIN. Atlikuši {} mēģinājumi.",
+                "account_locked": "Konts bloķēts",
+                "max_attempts": "Tika pārsniegts maksimālais PIN mēģinājumu skaits. Jūsu konts ir bloķēts."
+            },
+            "morse": {
+                "bank_name": "-- .- --.. . / -... .- -. -.-",
+                "bank_subtitle": "--- ..-. / .-.. --- ... / ... .- -. - --- ...",
+                "balance": ".- -.-. -.-. --- ..- -. - / -... .- .-.. .- -. -.-. .: ${:.2f}",
+                "choose_service": "-.-. .... --- --- ... . / .- / ... . .-. ...- .. -.-. . .-.-.-",
+                "deposit": "-.. . .--. --- ... .. -",
+                "withdraw": ".-- .. - .... -.. .-. .- .--",
+                "trans_log": "- .-. .- -. ... .- -.-. - .. --- -. / .-.. --- --.",
+                "daily_quote": "-.. .- .. .-.. -.-- / --.- ..- --- - .",
+                "withdraw_prompt": "... . .-.. . -.-. - / - .... . / .- -- --- ..- -. - / -.-- --- ..- / .-- .. ... .... / - --- / .-- .. - .... -.. .-. .- .-- / ..-. .-. --- -- / - .... .. ... / .- -.-. -.-. --- ..- -. - .-.-.-",
+                "deposit_prompt": "... . .-.. . -.-. - / - .... . / .- -- --- ..- -. - / -.-- --- ..- / .-- .. ... .... / - --- / -.. . .--. --- ... .. - / .. -. - --- / - .... .. ... / .- -.-. -.-. --- ..- -. - .-.-.-",
+                "trans_history": "- .-. .- -. ... .- -.-. - .. --- -. / .... .. ... - --- .-. -.--",
+                "return_main": ". . - ..- .-. -. / - --- / -- .- .. -. →",
+                "view_json": "...- .. .-- / .-. .- .-- / .--- ... --- -.",
+                "date": "-.. .- - .",
+                "time": "- .. -- .",
+                "type": "- -.-- .--. .",
+                "amount": ".- -- --- ..- -. -",
+                "balance_col": "-... .- .-.. .- -. -.-. .",
+                "reason": ". .- ... --- -.",
+                "success_deposit": "-.-- --- ..- / ... ..- -.-. -.-. . ... ... ..-. ..- .-.. .-.. -.-- / -.. . .--. --- ... .. - . -.. / {}.",
+                "success_withdraw": "-.-- --- ..- / ... ..- -.-. -.-. . ... ... ..-. ..- .-.. .-.. -.-- / .-- .. - .... -.. .-. . .-- / {}.",
+                "prev_balance": ".--. .-. . ... .. --- ..- ... / -... .- .-.. .- -. -.-. .: ${:.2f}",
+                "new_balance": ".--- .- ..- -. ... / -... .- .-.. .- -. -.-. .: ${:.2f}",
+                "insufficient_funds": ".. -. ... ..- ..-. ..-. .. -.-. .. . -. - / ..-. ..- -. -.. ...",
+                "insufficient_msg": "-.-- --- ..- / -.. --- -. .----. - / .... .- ...- . / . -. --- ..- --. .... / -... .- .-.. .- -. -.-. . / ..-. --- .-. / - .... .. ... / .-- .. - .... -.. .-. .- .-- .- .-.. .-.-.-",
+                "quote_of_day": "--.- ..- --- - . / --- ..-. / - .... . / -.. .- -.--",
+                "close": "-.-. .-.. --- ... .",
+                "enter_pin": ". -. - . .-. / -.-- --- ..- .-. / .--. .. -. / -.-. --- -.. .",
+                "incorrect_pin": ".. -. -.-. --- .-. .-. . -.-. - / .--. .. -. .-.-.- / .- - .-.. .. -.- .. ... / {} / .- - - . -- .--. - ... / .-. . -- .- .. -. .. -. --.",
+                "account_locked": ".- -.-. -.-. --- ..- -. - / .-.. --- -.-. -.- . -..",
+                "max_attempts": "-- .- -..- .. -- ..- -- / .--. .. -. / .- - - . -- .--. - ... / . -..- -.-. . . -.. . -.. .-.-.- / -.-- --- ..- .-. / .- -.-. -.-. --- ..- -. - / .... .- ... / -... . . -. / .-.. --- -.-. -.- . -.. .-.-.-"
+            }
+        }
         
         # PIN configuration
         self.correct_pin = "1234"  # Default PIN, can be changed in a real app
@@ -37,7 +155,6 @@ class MazeBankApp:
         # Start with PIN screen
         self.create_pin_screen()
     
-     
     def create_pin_screen(self):
         # Clear any existing window
         if self.current_window and self.current_window != self.root:
@@ -59,13 +176,13 @@ class MazeBankApp:
         bank_text_frame.pack(pady=(20, 0))
         
         tk.Label(bank_text_frame, 
-                 text="MAZE BANK", 
+                 text=self.language_texts[self.current_language]["bank_name"], 
                  font=("Arial", 24, "bold"), 
                  fg="black", 
                  bg="white").pack()
         
         tk.Label(bank_text_frame, 
-                 text="OF LOS SANTOS", 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
                  font=("Arial", 12), 
                  fg="black", 
                  bg="white").pack()
@@ -79,7 +196,7 @@ class MazeBankApp:
         pin_frame.pack(fill="x", pady=(0, 20))
         
         tk.Label(pin_frame, 
-                 text="Enter your PIN code", 
+                 text=self.language_texts[self.current_language]["enter_pin"], 
                  font=("Arial", 16, "bold"), 
                  fg="white", 
                  bg="#ff0000").pack(pady=(0, 20))
@@ -146,6 +263,18 @@ class MazeBankApp:
                 **keypad_button_style,
                 command=self.verify_pin).grid(row=3, column=2, padx=5, pady=5)
         
+        # Language buttons frame
+        lang_frame = tk.Frame(main_frame, bg="white")
+        lang_frame.pack(pady=10)
+        
+        # Language buttons
+        tk.Button(lang_frame, text="EN", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("english")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="LV", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("latvian")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="MC", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("morse")).pack(side="left", padx=2)
+        
         # Bind Enter key to verify PIN
         self.root.bind("<Return>", lambda event: self.verify_pin())
         
@@ -173,20 +302,77 @@ class MazeBankApp:
             self.root.unbind("<Return>")
             # Proceed to main menu
             self.create_main_menu()
+            self.show_daily_quote()  # Show quote when logged in
         else:
             # Increase attempts counter
             self.pin_attempts += 1
             remaining = self.max_attempts - self.pin_attempts
             
             if remaining > 0:
-                self.error_label.config(text=f"Incorrect PIN. {remaining} attempts remaining.")
+                self.error_label.config(text=self.language_texts[self.current_language]["incorrect_pin"].format(remaining))
                 self.pin_var.set("")  # Clear the entry field
             else:
                 # Lock account after max attempts
-                messagebox.showerror("Account Locked", 
-                                  "Maximum PIN attempts exceeded. Your account has been locked.")
+                messagebox.showerror(
+                    self.language_texts[self.current_language]["account_locked"], 
+                    self.language_texts[self.current_language]["max_attempts"]
+                )
                 self.root.quit()
+
+    def show_daily_quote(self):
+        # Get a random quote
+        quote_data = random.choice(self.quotes)
+        quote = quote_data["quote"]
+        author = quote_data["author"]
         
+        # Create a top-level window for the quote
+        quote_window = tk.Toplevel(self.root)
+        quote_window.title(self.language_texts[self.current_language]["quote_of_day"])
+        quote_window.geometry("500x300")
+        quote_window.configure(bg="white")
+        quote_window.resizable(False, False)
+        
+        # Center the window
+        window_width = quote_window.winfo_reqwidth()
+        window_height = quote_window.winfo_reqheight()
+        position_right = int(quote_window.winfo_screenwidth()/2 - window_width/2)
+        position_down = int(quote_window.winfo_screenheight()/2 - window_height/2)
+        quote_window.geometry(f"+{position_right}+{position_down}")
+        
+        # Main frame
+        main_frame = tk.Frame(quote_window, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Quote label
+        quote_label = tk.Label(main_frame, 
+                             text=f'"{quote}"',
+                             font=("Arial", 12, "italic"),
+                             wraplength=400,
+                             justify="center",
+                             bg="white")
+        quote_label.pack(expand=True, pady=(20, 10))
+        
+        # Author label
+        author_label = tk.Label(main_frame, 
+                              text=f"— {author}",
+                              font=("Arial", 10),
+                              bg="white")
+        author_label.pack(pady=(0, 20))
+        
+        # Close button
+        close_btn = tk.Button(main_frame, 
+                            text=self.language_texts[self.current_language]["close"], 
+                            font=("Arial", 12, "bold"),
+                            width=10,
+                            bg="#ff0000",
+                            fg="white",
+                            command=quote_window.destroy)
+        close_btn.pack(pady=10)
+        
+        # Make the window modal
+        quote_window.grab_set()
+        quote_window.transient(self.root)
+    
     def create_main_menu(self):
         # Clear any existing window
         if self.current_window and self.current_window != self.root:
@@ -231,13 +417,13 @@ class MazeBankApp:
         bank_text_frame.pack(side="left")
         
         tk.Label(bank_text_frame, 
-                 text="MAZE BANK", 
+                 text=self.language_texts[self.current_language]["bank_name"], 
                  font=("Arial", 24, "bold"), 
                  fg="black", 
                  bg="white").pack(anchor="w")
         
         tk.Label(bank_text_frame, 
-                 text="OF LOS SANTOS", 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
                  font=("Arial", 12), 
                  fg="black", 
                  bg="white").pack(anchor="w")
@@ -247,11 +433,23 @@ class MazeBankApp:
         balance_frame.pack(side="right")
         
         self.balance_label = tk.Label(balance_frame, 
-                 text=f"Account balance: ${self.current_balance:.2f}", 
+                 text=self.language_texts[self.current_language]["balance"].format(self.current_balance), 
                  font=("Arial", 12, "bold"), 
                  fg="black", 
                  bg="white")
         self.balance_label.pack(anchor="e")
+        
+        # Language buttons frame
+        lang_frame = tk.Frame(header_line, bg="white")
+        lang_frame.pack(side="right", padx=10)
+        
+        # Language buttons
+        tk.Button(lang_frame, text="EN", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("english")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="LV", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("latvian")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="MC", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("morse")).pack(side="left", padx=2)
         
         # Thick red line separator
         red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
@@ -268,7 +466,7 @@ class MazeBankApp:
                  bg="#ff0000").pack(anchor="w")
         
         tk.Label(user_service_frame, 
-                 text="Choose a service.", 
+                 text=self.language_texts[self.current_language]["choose_service"], 
                  font=("Arial", 14, "bold"), 
                  fg="white", 
                  bg="#ff0000").pack(anchor="center", pady=(10, 0))
@@ -301,23 +499,38 @@ class MazeBankApp:
         button_container.pack(pady=20)
         
         # Create buttons
-        deposit_btn = tk.Button(button_container, text="DEPOSIT", **button_style, 
+        deposit_btn = tk.Button(button_container, 
+                               text=self.language_texts[self.current_language]["deposit"], 
+                               **button_style, 
                                command=self.create_deposit_window)
         deposit_btn.pack(pady=10)
         deposit_btn.bind("<Enter>", on_enter)
         deposit_btn.bind("<Leave>", on_leave)
         
-        withdraw_btn = tk.Button(button_container, text="WITHDRAW", **button_style, 
+        withdraw_btn = tk.Button(button_container, 
+                                text=self.language_texts[self.current_language]["withdraw"], 
+                                **button_style, 
                                 command=self.create_withdrawal_window)
         withdraw_btn.pack(pady=10)
         withdraw_btn.bind("<Enter>", on_enter)
         withdraw_btn.bind("<Leave>", on_leave)
         
-        trans_log_btn = tk.Button(button_container, text="TRANSACTION LOG", **button_style,
+        trans_log_btn = tk.Button(button_container, 
+                                 text=self.language_texts[self.current_language]["trans_log"], 
+                                 **button_style,
                                  command=self.show_transaction_log)
         trans_log_btn.pack(pady=10)
         trans_log_btn.bind("<Enter>", on_enter)
         trans_log_btn.bind("<Leave>", on_leave)
+        
+        # Add Daily Quote button
+        quote_btn = tk.Button(button_container, 
+                             text=self.language_texts[self.current_language]["daily_quote"], 
+                             **button_style,
+                             command=self.show_daily_quote)
+        quote_btn.pack(pady=10)
+        quote_btn.bind("<Enter>", on_enter)
+        quote_btn.bind("<Leave>", on_leave)
         
         # Log out button
         logout_btn = tk.Button(button_container, text="LOG OUT", **button_style,
@@ -327,7 +540,7 @@ class MazeBankApp:
         logout_btn.bind("<Leave>", on_leave)
         
         # Apply rounded corners
-        for btn in [deposit_btn, withdraw_btn, trans_log_btn, logout_btn]:
+        for btn in [deposit_btn, withdraw_btn, trans_log_btn, quote_btn, logout_btn]:
             btn.config(highlightthickness=1)
     
     def logout(self):
@@ -337,8 +550,19 @@ class MazeBankApp:
         if confirm:
             # Return to PIN screen
             self.create_pin_screen()
-
     
+    def set_language(self, language):
+        self.current_language = language
+        if self.current_window == self.root:
+            # If we're on the main menu or PIN screen, recreate it
+            if hasattr(self, 'pin_var'):
+                self.create_pin_screen()
+            else:
+                self.create_main_menu()
+        else:
+            # For other windows, just update the language setting
+            # They'll get the new language when recreated
+            pass
     
     def create_withdrawal_window(self):
         # Hide main menu
@@ -368,13 +592,13 @@ class MazeBankApp:
         bank_text_frame.pack(side="left")
         
         tk.Label(bank_text_frame, 
-                 text="MAZE BANK", 
+                 text=self.language_texts[self.current_language]["bank_name"], 
                  font=("Arial", 24, "bold"), 
                  fg="black", 
                  bg="white").pack(anchor="w")
         
         tk.Label(bank_text_frame, 
-                 text="OF LOS SANTOS", 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
                  font=("Arial", 12), 
                  fg="black", 
                  bg="white").pack(anchor="w")
@@ -384,7 +608,7 @@ class MazeBankApp:
         balance_frame.pack(side="right")
         
         tk.Label(balance_frame, 
-                 text=f"Account balance: ${self.current_balance:.2f}", 
+                 text=self.language_texts[self.current_language]["balance"].format(self.current_balance), 
                  font=("Arial", 12, "bold"), 
                  fg="black", 
                  bg="white").pack(anchor="e")
@@ -404,7 +628,7 @@ class MazeBankApp:
                  bg="#ff0000").pack(anchor="w")
         
         tk.Label(user_prompt_frame, 
-                 text="Select the amount you wish to withdraw from this account.", 
+                 text=self.language_texts[self.current_language]["withdraw_prompt"], 
                  font=("Arial", 14, "bold"), 
                  fg="white", 
                  bg="#ff0000").pack(anchor="center", pady=(10, 0))
@@ -468,7 +692,141 @@ class MazeBankApp:
         menu_frame = tk.Frame(main_frame, bg="white")
         menu_frame.pack(pady=20)
         
-        tk.Button(menu_frame, text="Main Menu", **menu_button_style).pack()
+        tk.Button(menu_frame, text=self.language_texts[self.current_language]["return_main"], **menu_button_style).pack()
+    
+    def create_deposit_window(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        deposit_win = tk.Toplevel()
+        deposit_win.title("MAZE BANK - Deposit")
+        deposit_win.geometry("700x600")
+        deposit_win.configure(bg="white")
+        deposit_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        deposit_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(deposit_win))
+        
+        self.current_window = deposit_win
+        
+        # Main frame
+        main_frame = tk.Frame(deposit_win, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Header line with bank name
+        header_line = tk.Frame(main_frame, bg="white")
+        header_line.pack(fill="x")
+        
+        # Bank name on left
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_name"], 
+                 font=("Arial", 24, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        # Account balance on right
+        balance_frame = tk.Frame(header_line, bg="white")
+        balance_frame.pack(side="right")
+        
+        tk.Label(balance_frame, 
+                 text=self.language_texts[self.current_language]["balance"].format(self.current_balance), 
+                 font=("Arial", 12, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="e")
+        
+        # Thick red line separator
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
+        red_line.pack(fill="x", pady=20)
+        
+        # Username and prompt in red box
+        user_prompt_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_prompt_frame.pack(fill="x", pady=(0, 20))
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.username, 
+                 font=("Arial", 12, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="w")
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.language_texts[self.current_language]["withdraw_prompt"], 
+                 font=("Arial", 14, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="center", pady=(10, 0))
+        
+        # Button styling for amount buttons
+        amount_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "white",
+            "fg": "black",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#eeeeee",
+            "activeforeground": "black",
+            "borderwidth": 1,
+            "highlightbackground": "#cccccc"
+        }
+        
+        # Amount buttons container
+        amount_frame = tk.Frame(main_frame, bg="white")
+        amount_frame.pack(pady=20)
+        
+        # First row of buttons
+        row1_frame = tk.Frame(amount_frame, bg="white")
+        row1_frame.pack(pady=10)
+        
+        # Create amount buttons with commands
+        amounts_row1 = ["$50", "$100", "$500"]
+        for amount in amounts_row1:
+            tk.Button(row1_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Second row of buttons
+        row2_frame = tk.Frame(amount_frame, bg="white")
+        row2_frame.pack(pady=10)
+        
+        amounts_row2 = ["$1,000", "$2,500", "$5,000"]
+        for amount in amounts_row2:
+            tk.Button(row2_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Main Menu button at bottom
+        menu_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "#ff0000",
+            "fg": "white",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#cc0000",
+            "activeforeground": "white",
+            "borderwidth": 1,
+            "highlightbackground": "#ff0000",
+            "command": lambda: self.on_window_close(withdraw_win)
+        }
+        
+        menu_frame = tk.Frame(main_frame, bg="white")
+        menu_frame.pack(pady=20)
+        
+        tk.Button(menu_frame, text=self.language_texts[self.current_language]["return_main"], **menu_button_style).pack()
     
     def create_deposit_window(self):
         # Hide main menu
@@ -498,13 +856,13 @@ class MazeBankApp:
         bank_text_frame.pack(side="left")
         
         tk.Label(bank_text_frame, 
-                 text="MAZE BANK", 
+                 text=self.language_texts[self.current_language]["bank_name"], 
                  font=("Arial", 24, "bold"), 
                  fg="black", 
                  bg="white").pack(anchor="w")
         
         tk.Label(bank_text_frame, 
-                 text="OF LOS SANTOS", 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
                  font=("Arial", 12), 
                  fg="black", 
                  bg="white").pack(anchor="w")
@@ -514,7 +872,7 @@ class MazeBankApp:
         balance_frame.pack(side="right")
         
         tk.Label(balance_frame, 
-                 text=f"Account balance: ${self.current_balance:.2f}", 
+                 text=self.language_texts[self.current_language]["balance"].format(self.current_balance), 
                  font=("Arial", 12, "bold"), 
                  fg="black", 
                  bg="white").pack(anchor="e")
@@ -534,7 +892,7 @@ class MazeBankApp:
                  bg="#ff0000").pack(anchor="w")
         
         tk.Label(user_prompt_frame, 
-                 text="Select the amount you wish to deposit into this account.", 
+                 text=self.language_texts[self.current_language]["deposit_prompt"], 
                  font=("Arial", 14, "bold"), 
                  fg="white", 
                  bg="#ff0000").pack(anchor="center", pady=(10, 0))
@@ -598,7 +956,7 @@ class MazeBankApp:
         menu_frame = tk.Frame(main_frame, bg="white")
         menu_frame.pack(pady=20)
         
-        tk.Button(menu_frame, text="Main Menu", **menu_button_style).pack()
+        tk.Button(menu_frame, text=self.language_texts[self.current_language]["return_main"], **menu_button_style).pack()
     
     def show_transaction_log(self):
         # Hide main menu
@@ -635,7 +993,7 @@ class MazeBankApp:
                 bg="#ff0000").pack(side="left", anchor="w")
         
         # Return button inside the red square, aligned to the right
-        return_btn = tk.Button(top_row, text="Return to Main →", 
+        return_btn = tk.Button(top_row, text=self.language_texts[self.current_language]["return_main"], 
                              font=("Arial", 10, "bold"), 
                              bg="white", fg="#ff0000",
                              bd=0, padx=10, pady=2,
@@ -644,7 +1002,7 @@ class MazeBankApp:
         
         # Transaction History label centered
         tk.Label(user_frame, 
-                text="Transaction History", 
+                text=self.language_texts[self.current_language]["trans_history"], 
                 font=("Arial", 14, "bold"), 
                 fg="white", 
                 bg="#ff0000").pack(anchor="center", pady=(10, 0))
@@ -666,17 +1024,17 @@ class MazeBankApp:
         reason_width = 15
         
         # Create header labels
-        tk.Label(headers_frame, text="DATE", width=date_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["date"], width=date_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
-        tk.Label(headers_frame, text="TIME", width=time_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["time"], width=time_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
-        tk.Label(headers_frame, text="TYPE", width=type_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["type"], width=type_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
-        tk.Label(headers_frame, text="AMOUNT", width=amount_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["amount"], width=amount_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
-        tk.Label(headers_frame, text="BALANCE", width=balance_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["balance_col"], width=balance_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
-        tk.Label(headers_frame, text="REASON", width=reason_width, font=("Arial", 10, "bold"), 
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["reason"], width=reason_width, font=("Arial", 10, "bold"), 
                 bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
         
         # Create a canvas with scrollbar for transaction entries
@@ -905,8 +1263,8 @@ class MazeBankApp:
             # Check if there's enough balance
             if self.current_balance < amount_clean:
                 messagebox.showerror(
-                    "Insufficient Funds",
-                    "You don't have enough balance for this withdrawal."
+                    self.language_texts[self.current_language]["insufficient_funds"],
+                    self.language_texts[self.current_language]["insufficient_msg"]
                 )
                 return
             
@@ -969,12 +1327,12 @@ class MazeBankApp:
             balance_frame.pack(pady=10)
             
             tk.Label(balance_frame,
-                   text=f"Previous balance: ${old_balance:.2f}",
+                   text=self.language_texts[self.current_language]["prev_balance"].format(old_balance),
                    font=("Arial", 12),
                    bg="white").pack(anchor="w")
             
             tk.Label(balance_frame,
-                   text=f"New balance: ${self.current_balance:.2f}",
+                   text=self.language_texts[self.current_language]["new_balance"].format(self.current_balance),
                    font=("Arial", 12, "bold"),
                    bg="white").pack(anchor="w")
         
