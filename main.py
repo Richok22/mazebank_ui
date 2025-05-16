@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
+#import PIL
+#from PIL import Image, ImageTK
 import requests
 from io import BytesIO
 import json
@@ -28,7 +29,7 @@ class MazeBankApp:
         
         self.current_balance = 3.72
         self.username = "Ruslans Depo"
-        self.current_language = "english"  # Default language
+        self.current_language = "latvian"  # Default language
         
         # Daily quotes data
         self.quotes = [
@@ -175,11 +176,7 @@ class MazeBankApp:
         bank_text_frame = tk.Frame(main_frame, bg="white")
         bank_text_frame.pack(pady=(20, 0))
         
-        tk.Label(bank_text_frame, 
-                 text=self.language_texts[self.current_language]["bank_name"], 
-                 font=("Arial", 24, "bold"), 
-                 fg="black", 
-                 bg="white").pack()
+        tk.Label(bank_text_frame, text=self.language_texts[self.current_language]["bank_name"], font=("Arial", 24, "bold"), fg="black", bg="white").pack()
         
         tk.Label(bank_text_frame, 
                  text=self.language_texts[self.current_language]["bank_subtitle"], 
@@ -721,9 +718,11 @@ class MazeBankApp:
         bank_text_frame = tk.Frame(header_line, bg="white")
         bank_text_frame.pack(side="left")
         
-        tk.Label(bank_text
-        bank_text_frame = tk.Frame(header_line, bg="white")
-        bank_text_frame.pack(side="left")
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
         
         tk.Label(bank_text_frame, 
                  text=self.language_texts[self.current_language]["bank_name"], 
