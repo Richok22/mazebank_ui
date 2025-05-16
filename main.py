@@ -18,7 +18,6 @@ class MazeBankApp:
         self.main_window = None
         self.current_window = None
         
-        
         # Sample transaction data with reason added
         self.transactions = [
             {"date": "2023-05-15", "time": "14:30:22", "type": "Deposit", "amount": 500.00, "balance": 503.72, "reason": "Vanilla Unicorn"},
