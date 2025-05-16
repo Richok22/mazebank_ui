@@ -73,7 +73,11 @@ class MazeBankApp:
                 "insufficient_funds": "Insufficient Funds",
                 "insufficient_msg": "You don't have enough balance for this withdrawal.",
                 "quote_of_day": "Quote of the Day",
-                "close": "Close"
+                "close": "Close",
+                "enter_pin": "Enter your PIN code",
+                "incorrect_pin": "Incorrect PIN. {} attempts remaining.",
+                "account_locked": "Account Locked",
+                "max_attempts": "Maximum PIN attempts exceeded. Your account has been locked."
             },
             "latvian": {
                 "bank_name": "MAZE BANKA",
@@ -102,7 +106,11 @@ class MazeBankApp:
                 "insufficient_funds": "Nepietiek līdzekļu",
                 "insufficient_msg": "Jums nav pietiekami daudz naudas šim izņēmumam.",
                 "quote_of_day": "Dienas citāts",
-                "close": "Aizvērt"
+                "close": "Aizvērt",
+                "enter_pin": "Ievadiet savu PIN kodu",
+                "incorrect_pin": "Nepareizs PIN. Atlikuši {} mēģinājumi.",
+                "account_locked": "Konts bloķēts",
+                "max_attempts": "Tika pārsniegts maksimālais PIN mēģinājumu skaits. Jūsu konts ir bloķēts."
             },
             "morse": {
                 "bank_name": "-- .- --.. . / -... .- -. -.-",
@@ -131,13 +139,186 @@ class MazeBankApp:
                 "insufficient_funds": ".. -. ... ..- ..-. ..-. .. -.-. .. . -. - / ..-. ..- -. -.. ...",
                 "insufficient_msg": "-.-- --- ..- / -.. --- -. .----. - / .... .- ...- . / . -. --- ..- --. .... / -... .- .-.. .- -. -.-. . / ..-. --- .-. / - .... .. ... / .-- .. - .... -.. .-. .- .-- .- .-.. .-.-.-",
                 "quote_of_day": "--.- ..- --- - . / --- ..-. / - .... . / -.. .- -.--",
-                "close": "-.-. .-.. --- ... ."
+                "close": "-.-. .-.. --- ... .",
+                "enter_pin": ". -. - . .-. / -.-- --- ..- .-. / .--. .. -. / -.-. --- -.. .",
+                "incorrect_pin": ".. -. -.-. --- .-. .-. . -.-. - / .--. .. -. .-.-.- / .- - .-.. .. -.- .. ... / {} / .- - - . -- .--. - ... / .-. . -- .- .. -. .. -. --.",
+                "account_locked": ".- -.-. -.-. --- ..- -. - / .-.. --- -.-. -.- . -..",
+                "max_attempts": "-- .- -..- .. -- ..- -- / .--. .. -. / .- - - . -- .--. - ... / . -..- -.-. . . -.. . -.. .-.-.- / -.-- --- ..- .-. / .- -.-. -.-. --- ..- -. - / .... .- ... / -... . . -. / .-.. --- -.-. -.- . -.. .-.-.-"
             }
         }
         
-        self.create_main_menu()
-        self.show_daily_quote()  # Show quote when app starts
+        # PIN configuration
+        self.correct_pin = "1234"  # Default PIN, can be changed in a real app
+        self.pin_attempts = 0
+        self.max_attempts = 3
         
+        # Start with PIN screen
+        self.create_pin_screen()
+    
+    def create_pin_screen(self):
+        # Clear any existing window
+        if self.current_window and self.current_window != self.root:
+            self.current_window.destroy()
+            self.root.deiconify()
+            
+        # Clear the window if coming back from another screen
+        for widget in self.root.winfo_children():
+            widget.destroy()
+            
+        self.current_window = self.root
+        
+        # Main frame
+        main_frame = tk.Frame(self.current_window, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Header with bank name
+        bank_text_frame = tk.Frame(main_frame, bg="white")
+        bank_text_frame.pack(pady=(20, 0))
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_name"], 
+                 font=("Arial", 24, "bold"), 
+                 fg="black", 
+                 bg="white").pack()
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack()
+        
+        # Thick red line separator
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
+        red_line.pack(fill="x", pady=20)
+        
+        # PIN entry section in red box
+        pin_frame = tk.Frame(main_frame, bg="#ff0000", padx=20, pady=20)
+        pin_frame.pack(fill="x", pady=(0, 20))
+        
+        tk.Label(pin_frame, 
+                 text=self.language_texts[self.current_language]["enter_pin"], 
+                 font=("Arial", 16, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(pady=(0, 20))
+        
+        # PIN entry with masking
+        self.pin_var = tk.StringVar()
+        pin_entry = tk.Entry(pin_frame, 
+                             textvariable=self.pin_var, 
+                             font=("Arial", 20), 
+                             width=10, 
+                             show="•",  # Masked PIN display
+                             justify="center")
+        pin_entry.pack(pady=10)
+        pin_entry.focus_set()  # Focus on the PIN entry field
+        
+        # Error message label (initially empty)
+        self.error_label = tk.Label(pin_frame,
+                                   text="",
+                                   font=("Arial", 12),
+                                   fg="white",
+                                   bg="#ff0000")
+        self.error_label.pack(pady=10)
+        
+        # Create keypad container
+        keypad_container = tk.Frame(main_frame, bg="white")
+        keypad_container.pack(pady=20)
+        
+        # Button styling
+        keypad_button_style = {
+            "font": ("Arial", 16, "bold"),
+            "width": 4,
+            "height": 2,
+            "bg": "#ff0000",
+            "fg": "white",
+            "activebackground": "#cc0000",
+            "activeforeground": "white",
+            "bd": 1
+        }
+        
+        # Create keypad buttons (1-9)
+        for i in range(9):
+            row = i // 3
+            col = i % 3
+            button_value = i + 1  # 1-9
+            button = tk.Button(keypad_container, 
+                             text=str(button_value),
+                             **keypad_button_style,
+                             command=lambda v=button_value: self.add_pin_digit(str(v)))
+            button.grid(row=row, column=col, padx=5, pady=5)
+        
+        # Add bottom row with clear, 0, and submit buttons
+        tk.Button(keypad_container,
+                text="C",
+                **keypad_button_style,
+                command=self.clear_pin).grid(row=3, column=0, padx=5, pady=5)
+        
+        tk.Button(keypad_container,
+                text="0",
+                **keypad_button_style,
+                command=lambda: self.add_pin_digit("0")).grid(row=3, column=1, padx=5, pady=5)
+        
+        tk.Button(keypad_container,
+                text="✓",
+                **keypad_button_style,
+                command=self.verify_pin).grid(row=3, column=2, padx=5, pady=5)
+        
+        # Language buttons frame
+        lang_frame = tk.Frame(main_frame, bg="white")
+        lang_frame.pack(pady=10)
+        
+        # Language buttons
+        tk.Button(lang_frame, text="EN", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("english")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="LV", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("latvian")).pack(side="left", padx=2)
+        tk.Button(lang_frame, text="MC", font=("Arial", 8), width=3, 
+                 command=lambda: self.set_language("morse")).pack(side="left", padx=2)
+        
+        # Bind Enter key to verify PIN
+        self.root.bind("<Return>", lambda event: self.verify_pin())
+        
+    def add_pin_digit(self, digit):
+        current = self.pin_var.get()
+        if len(current) < 4:  # Limit PIN to 4 digits
+            self.pin_var.set(current + digit)
+            
+    def clear_pin(self):
+        self.pin_var.set("")
+        
+    def verify_pin(self):
+        entered_pin = self.pin_var.get()
+        
+        # Check if PIN is complete (4 digits)
+        if len(entered_pin) != 4:
+            self.error_label.config(text="Please enter a 4-digit PIN")
+            return
+            
+        # Verify PIN
+        if entered_pin == self.correct_pin:
+            # Reset attempts counter
+            self.pin_attempts = 0
+            # Remove key bindings
+            self.root.unbind("<Return>")
+            # Proceed to main menu
+            self.create_main_menu()
+            self.show_daily_quote()  # Show quote when logged in
+        else:
+            # Increase attempts counter
+            self.pin_attempts += 1
+            remaining = self.max_attempts - self.pin_attempts
+            
+            if remaining > 0:
+                self.error_label.config(text=self.language_texts[self.current_language]["incorrect_pin"].format(remaining))
+                self.pin_var.set("")  # Clear the entry field
+            else:
+                # Lock account after max attempts
+                messagebox.showerror(
+                    self.language_texts[self.current_language]["account_locked"], 
+                    self.language_texts[self.current_language]["max_attempts"]
+                )
+                self.root.quit()
+
     def show_daily_quote(self):
         # Get a random quote
         quote_data = random.choice(self.quotes)
@@ -351,13 +532,37 @@ class MazeBankApp:
         quote_btn.bind("<Enter>", on_enter)
         quote_btn.bind("<Leave>", on_leave)
         
+        # Log out button
+        logout_btn = tk.Button(button_container, text="LOG OUT", **button_style,
+                              command=self.logout)
+        logout_btn.pack(pady=10)
+        logout_btn.bind("<Enter>", on_enter)
+        logout_btn.bind("<Leave>", on_leave)
+        
         # Apply rounded corners
-        for btn in [deposit_btn, withdraw_btn, trans_log_btn, quote_btn]:
+        for btn in [deposit_btn, withdraw_btn, trans_log_btn, quote_btn, logout_btn]:
             btn.config(highlightthickness=1)
+    
+    def logout(self):
+        # Show confirmation dialog
+        confirm = messagebox.askyesno("Logout Confirmation", 
+                                    "Are you sure you want to log out?")
+        if confirm:
+            # Return to PIN screen
+            self.create_pin_screen()
     
     def set_language(self, language):
         self.current_language = language
-        self.create_main_menu()  # Refresh the UI with new language
+        if self.current_window == self.root:
+            # If we're on the main menu or PIN screen, recreate it
+            if hasattr(self, 'pin_var'):
+                self.create_pin_screen()
+            else:
+                self.create_main_menu()
+        else:
+            # For other windows, just update the language setting
+            # They'll get the new language when recreated
+            pass
     
     def create_withdrawal_window(self):
         # Hide main menu
@@ -383,6 +588,140 @@ class MazeBankApp:
         header_line.pack(fill="x")
         
         # Bank name on left
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_name"], 
+                 font=("Arial", 24, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        tk.Label(bank_text_frame, 
+                 text=self.language_texts[self.current_language]["bank_subtitle"], 
+                 font=("Arial", 12), 
+                 fg="black", 
+                 bg="white").pack(anchor="w")
+        
+        # Account balance on right
+        balance_frame = tk.Frame(header_line, bg="white")
+        balance_frame.pack(side="right")
+        
+        tk.Label(balance_frame, 
+                 text=self.language_texts[self.current_language]["balance"].format(self.current_balance), 
+                 font=("Arial", 12, "bold"), 
+                 fg="black", 
+                 bg="white").pack(anchor="e")
+        
+        # Thick red line separator
+        red_line = tk.Frame(main_frame, height=4, bg="#ff0000")
+        red_line.pack(fill="x", pady=20)
+        
+        # Username and prompt in red box
+        user_prompt_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_prompt_frame.pack(fill="x", pady=(0, 20))
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.username, 
+                 font=("Arial", 12, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="w")
+        
+        tk.Label(user_prompt_frame, 
+                 text=self.language_texts[self.current_language]["withdraw_prompt"], 
+                 font=("Arial", 14, "bold"), 
+                 fg="white", 
+                 bg="#ff0000").pack(anchor="center", pady=(10, 0))
+        
+        # Button styling for amount buttons
+        amount_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "white",
+            "fg": "black",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#eeeeee",
+            "activeforeground": "black",
+            "borderwidth": 1,
+            "highlightbackground": "#cccccc"
+        }
+        
+        # Amount buttons container
+        amount_frame = tk.Frame(main_frame, bg="white")
+        amount_frame.pack(pady=20)
+        
+        # First row of buttons
+        row1_frame = tk.Frame(amount_frame, bg="white")
+        row1_frame.pack(pady=10)
+        
+        # Create amount buttons with commands
+        amounts_row1 = ["$50", "$100", "$500"]
+        for amount in amounts_row1:
+            tk.Button(row1_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Second row of buttons
+        row2_frame = tk.Frame(amount_frame, bg="white")
+        row2_frame.pack(pady=10)
+        
+        amounts_row2 = ["$1,000", "$2,500", "$5,000"]
+        for amount in amounts_row2:
+            tk.Button(row2_frame, text=amount, **amount_button_style,
+                     command=lambda amt=amount: self.handle_transaction("withdraw", amt)).pack(side="left", padx=10)
+        
+        # Main Menu button at bottom
+        menu_button_style = {
+            "font": ("Arial", 12, "bold"),
+            "width": 15,
+            "height": 2,
+            "bg": "#ff0000",
+            "fg": "white",
+            "bd": 1,
+            "relief": "solid",
+            "highlightthickness": 0,
+            "activebackground": "#cc0000",
+            "activeforeground": "white",
+            "borderwidth": 1,
+            "highlightbackground": "#ff0000",
+            "command": lambda: self.on_window_close(withdraw_win)
+        }
+        
+        menu_frame = tk.Frame(main_frame, bg="white")
+        menu_frame.pack(pady=20)
+        
+        tk.Button(menu_frame, text=self.language_texts[self.current_language]["return_main"], **menu_button_style).pack()
+    
+    def create_deposit_window(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        deposit_win = tk.Toplevel()
+        deposit_win.title("MAZE BANK - Deposit")
+        deposit_win.geometry("700x600")
+        deposit_win.configure(bg="white")
+        deposit_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        deposit_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(deposit_win))
+        
+        self.current_window = deposit_win
+        
+        # Main frame
+        main_frame = tk.Frame(deposit_win, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Header line with bank name
+        header_line = tk.Frame(main_frame, bg="white")
+        header_line.pack(fill="x")
+        
+        # Bank name on left
+        bank_text_frame = tk.Frame(header_line, bg="white")
+        bank_text_frame.pack(side="left")
+        
+        tk.Label(bank_text
         bank_text_frame = tk.Frame(header_line, bg="white")
         bank_text_frame.pack(side="left")
         
@@ -720,6 +1059,140 @@ class MazeBankApp:
             row_frame = tk.Frame(scrollable_frame, bg=row_bg)
             row_frame.pack(fill="x", expand=True)
             
+            tk.Label(row_frame, text=transaction["date"], width=date_width, font=("Arial", 14, "bold"), 
+                     bg="white")
+        msg.pack(expand=True, pady=(20, 10))
+        
+        # Add balance update if provided
+        if old_balance is not None:
+            balance_frame = tk.Frame(main_frame, bg="white")
+            balance_frame.pack(pady=10)
+            
+            tk.Label(balance_frame,
+                   text=f"Previous balance: ${old_balance:.2f}",
+                   font=("Arial", 12),
+                   bg="white").pack(anchor="w")
+            
+            tk.Label(balance_frame,
+                   text=f"New balance: ${self.current_balance:.2f}",
+                   font=("Arial", 12, "bold"),
+                   bg="white").pack(anchor="w")
+        
+        # Add OK button
+        ok_btn = tk.Button(main_frame, 
+                         text="OK", 
+                         font=("Arial", 12, "bold"),
+                         width=10,
+                         bg="#ff0000",
+                         fg="white",
+                         command=confirmation.destroy)
+        ok_btn.pack(pady=20)
+        
+        # Make the window modal
+        confirmation.grab_set()
+        confirmation.transient(self.current_window)
+    
+    def show_transaction_log(self):
+        # Hide main menu
+        self.root.withdraw()
+        
+        # Create new window for transaction log
+        trans_log_win = tk.Toplevel()
+        trans_log_win.title("MAZE BANK - Transaction Log")
+        trans_log_win.geometry("700x600")
+        trans_log_win.configure(bg="white")
+        trans_log_win.resizable(False, False)
+        
+        # Set close behavior to return to main menu
+        trans_log_win.protocol("WM_DELETE_WINDOW", lambda: self.on_window_close(trans_log_win))
+        
+        self.current_window = trans_log_win
+        
+        # Main frame
+        main_frame = tk.Frame(trans_log_win, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+        
+        # Red square with username and return button
+        user_frame = tk.Frame(main_frame, bg="#ff0000", padx=10, pady=15)
+        user_frame.pack(fill="x", pady=(10, 20))
+        
+        # Top row with username and return button
+        top_row = tk.Frame(user_frame, bg="#ff0000")
+        top_row.pack(fill="x")
+        
+        tk.Label(top_row, 
+                text=self.username, 
+                font=("Arial", 12, "bold"), 
+                fg="white", 
+                bg="#ff0000").pack(side="left", anchor="w")
+        
+        # Return button inside the red square, aligned to the right
+        return_btn = tk.Button(top_row, text=self.language_texts[self.current_language]["return_main"], 
+                             font=("Arial", 10, "bold"), 
+                             bg="white", fg="#ff0000",
+                             bd=0, padx=10, pady=2,
+                             command=lambda: self.on_window_close(trans_log_win))
+        return_btn.pack(side="right", anchor="e")
+        
+        # Transaction History label centered
+        tk.Label(user_frame, 
+                text=self.language_texts[self.current_language]["trans_history"], 
+                font=("Arial", 14, "bold"), 
+                fg="white", 
+                bg="#ff0000").pack(anchor="center", pady=(10, 0))
+                
+        # Create a frame for the styled transaction display
+        log_frame = tk.Frame(main_frame, bg="white", padx=10, pady=10)
+        log_frame.pack(expand=True, fill="both")
+        
+        # Create headers for the transaction table
+        headers_frame = tk.Frame(log_frame, bg="#ff0000")
+        headers_frame.pack(fill="x")
+        
+        # Define column widths
+        date_width = 10
+        time_width = 10
+        type_width = 12
+        amount_width = 10
+        balance_width = 12
+        reason_width = 15
+        
+        # Create header labels
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["date"], width=date_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["time"], width=time_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["type"], width=type_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["amount"], width=amount_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["balance_col"], width=balance_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        tk.Label(headers_frame, text=self.language_texts[self.current_language]["reason"], width=reason_width, font=("Arial", 10, "bold"), 
+                bg="#ff0000", fg="white", padx=5, pady=5).pack(side="left")
+        
+        # Create a canvas with scrollbar for transaction entries
+        canvas = tk.Canvas(log_frame, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=canvas.yview)
+        
+        scrollable_frame = tk.Frame(canvas, bg="white")
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True, pady=(2, 0))
+        scrollbar.pack(side="right", fill="y", pady=(2, 0))
+        
+        # Display transaction data in rows with reason
+        for i, transaction in enumerate(self.transactions):
+            row_bg = "#f0f0f0" if i % 2 == 0 else "white"
+            row_frame = tk.Frame(scrollable_frame, bg=row_bg)
+            row_frame.pack(fill="x", expand=True)
+            
             tk.Label(row_frame, text=transaction["date"], width=date_width, font=("Arial", 10),
                     bg=row_bg, padx=5, pady=5, anchor="w").pack(side="left")
             tk.Label(row_frame, text=transaction["time"], width=time_width, font=("Arial", 10),
@@ -819,9 +1292,9 @@ class MazeBankApp:
     def show_confirmation(self, action_type, amount, old_balance=None):
         # Format message based on action
         if action_type == "deposit":
-            verb = self.language_texts[self.current_language]["success_deposit"].format(amount)
+            verb = f"Successfully deposited {amount}"
         else:
-            verb = self.language_texts[self.current_language]["success_withdraw"].format(amount)
+            verb = f"Successfully withdrew {amount}"
         
         # Create a top-level window for the confirmation
         confirmation = tk.Toplevel(self.current_window)
@@ -874,6 +1347,72 @@ class MazeBankApp:
         ok_btn.pack(pady=20)
         
         # Make the window modal
+        confirmation.grab_set()
+        confirmation.transient(self.current_window)
+    
+    def on_window_close(self, window):
+        window.destroy()
+        self.root.deiconify()  # Show main window again
+        self.create_main_menu()
+    
+    def show_confirmation(self, action_type, amount, old_balance=None):
+    # Format message based on action
+        if action_type == "deposit":
+            verb = f"Successfully deposited ${amount}"
+        else:
+            verb = f"Successfully withdrew ${amount}"
+    
+    # Create a top-level window for the confirmation
+        confirmation = tk.Toplevel(self.current_window)
+        confirmation.title("Transaction Complete")
+        confirmation.geometry("400x250")
+        confirmation.configure(bg="white")
+        confirmation.resizable(False, False)
+    
+    # Center the window
+        window_width = confirmation.winfo_reqwidth()
+        window_height = confirmation.winfo_reqheight()
+        position_right = int(confirmation.winfo_screenwidth()/2 - window_width/2)
+        position_down = int(confirmation.winfo_screenheight()/2 - window_height/2)
+        confirmation.geometry(f"+{position_right}+{position_down}")
+    
+    # Container frame
+        main_frame = tk.Frame(confirmation, bg="white", padx=20, pady=20)
+        main_frame.pack(expand=True, fill="both")
+    
+    # Add messages
+        msg = tk.Label(main_frame, 
+                    text=verb,
+                    font=("Arial", 14, "bold"), 
+                    bg="white")
+        msg.pack(expand=True, pady=(20, 10))
+    
+    # Add balance update if provided
+        if old_balance is not None:
+            balance_frame = tk.Frame(main_frame, bg="white")
+            balance_frame.pack(pady=10)
+        
+            tk.Label(balance_frame,
+                text=f"Previous Balance: ${old_balance}",
+                font=("Arial", 12),
+                bg="white").pack(anchor="w")
+        
+            tk.Label(balance_frame,
+                text=f"New Balance: ${self.current_balance}",
+                font=("Arial", 12, "bold"),
+                bg="white").pack(anchor="w")
+    
+    # Add OK button
+        ok_btn = tk.Button(main_frame, 
+                     text="OK", 
+                     font=("Arial", 12, "bold"),
+                     width=10,
+                     bg="#ff0000",
+                     fg="white",
+                     command=confirmation.destroy)
+        ok_btn.pack(pady=20)
+    
+    # Make the window modal
         confirmation.grab_set()
         confirmation.transient(self.current_window)
     
