@@ -12,7 +12,7 @@ class MazeBankApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("MAZE BANK")
-        self.root.geometry("700x600")
+        self.root.geometry("700x800")
         self.root.configure(bg="white")
         self.root.resizable(False, False)
         
